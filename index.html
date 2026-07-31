@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>真实旋转地球</title>
+<link rel="icon" href="data:,">
+
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
   #info {
@@ -26,12 +28,138 @@
     text-shadow: 0 1px 2px rgba(0,0,0,.6); pointer-events: none;
     transform: translateY(-14px); transition: opacity .25s ease;
   }
+  :root{
+    --ui-font: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --glass: rgba(14,20,34,.72);
+    --line: rgba(120,170,255,.22);
+  }
+  /* 实时时钟叠层 */
+  #clock {
+    position: fixed; left: 16px; top: 14px; z-index: 12; user-select: none;
+    font-family: var(--ui-font); color: #dbe8ff;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 12px;
+    padding: 9px 13px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  }
+  #clock .big { font-size: 20px; font-weight: 700; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+  #clock .row { font-size: 11px; color: rgba(219,232,255,.62); margin-top: 2px; letter-spacing: .3px; }
+  #clock .sun { color:#ffcf87; }
+  /* 控制面板 */
+  #panel {
+    position: fixed; right: 14px; top: 14px; z-index: 12; width: 208px;
+    font-family: var(--ui-font); color: #dbe8ff;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 12px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 6px 20px rgba(0,0,0,.35); overflow: hidden;
+  }
+  #panel .hd {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
+    background: rgba(255,255,255,.04);
+  }
+  #panel .hd .tog { color: rgba(219,232,255,.6); transition: transform .2s ease; }
+  #panel.collapsed .bd { display: none; }
+  #panel.collapsed .hd .tog { transform: rotate(-90deg); }
+  #panel .bd { padding: 8px 12px 12px; }
+  #panel .sec { font-size: 10px; letter-spacing: 1px; color: rgba(219,232,255,.45);
+    margin: 10px 0 5px; text-transform: uppercase; }
+  #panel label { display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+    padding: 3px 0; cursor: pointer; }
+  #panel label input { accent-color: #4a9eff; width: 14px; height: 14px; }
+  #panel .modebtns { display: flex; gap: 6px; margin: 2px 0 4px; }
+  #panel .modebtns button {
+    flex: 1; font-family: var(--ui-font); font-size: 12px; color: #dbe8ff;
+    background: rgba(255,255,255,.05); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 4px; cursor: pointer; transition: all .15s;
+  }
+  #panel .modebtns button.on { background: rgba(74,158,255,.28); border-color: rgba(74,158,255,.6); color:#fff; }
+  #panel .slider { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; }
+  #panel .slider input[type=range] { flex: 1; accent-color: #4a9eff; }
+  #panel .btnrow { display: flex; gap: 6px; margin-top: 8px; }
+  #panel .btnrow button {
+    flex: 1; font-family: var(--ui-font); font-size: 12px; color: #dbe8ff;
+    background: rgba(255,255,255,.05); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 4px; cursor: pointer;
+  }
+  #panel .btnrow button:hover { background: rgba(255,255,255,.12); }
+  /* 城市信息卡 */
+  #cityCard {
+    position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%) translateY(16px);
+    z-index: 14; width: min(340px, calc(100vw - 32px)); opacity: 0; pointer-events: none;
+    font-family: var(--ui-font); color: #eaf1ff;
+    background: linear-gradient(180deg, rgba(20,28,48,.92), rgba(12,18,32,.92));
+    border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 12px 40px rgba(0,0,0,.5); transition: opacity .25s ease, transform .25s ease;
+  }
+  #cityCard.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  #cityCard .close {
+    position: absolute; right: 12px; top: 10px; cursor: pointer; font-size: 18px;
+    color: rgba(234,241,255,.5); line-height: 1; padding: 4px;
+  }
+  #cityCard .close:hover { color: #fff; }
+  #cityCard .name { font-size: 21px; font-weight: 700; }
+  #cityCard .country { font-size: 12px; color: #ffcf87; margin: 2px 0 10px; letter-spacing: .5px; }
+  #cityCard .lt { font-size: 13px; color: rgba(234,241,255,.7); }
+  #cityCard .lt b { font-size: 26px; font-weight: 700; color:#fff; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  #cityCard .meta { font-size: 11.5px; color: rgba(234,241,255,.55); margin-top: 8px; }
+  #cityCard .desc { font-size: 12.5px; line-height: 1.55; color: rgba(234,241,255,.82);
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(120,170,255,.18); }
+  @media (max-width: 560px){
+    #panel { width: 176px; }
+    #clock .big { font-size: 17px; }
+  }
 </style>
 </head>
 <body>
 <div id="loading">正在加载地球贴图…</div>
+
+<!-- 实时时钟叠层 -->
+<div id="clock">
+  <div class="big" id="clkUTC">--:--:--</div>
+  <div class="row" id="clkLocal">本地 --:--</div>
+  <div class="row sun" id="clkSun">☀ 正午经线 --</div>
+</div>
+
+<!-- 控制面板 -->
+<div id="panel">
+  <div class="hd" id="panelHd"><span>⚙ 控制面板</span><span class="tog">▾</span></div>
+  <div class="bd">
+    <div class="sec">运行模式</div>
+    <div class="modebtns">
+      <button id="modeReal" class="on">实时昼夜</button>
+      <button id="modeDemo">演示自转</button>
+    </div>
+    <div class="slider" id="speedRow" style="display:none">
+      <span>自转速度</span>
+      <input type="range" id="speed" min="0.2" max="4" step="0.1" value="1">
+    </div>
+    <div class="sec">图层</div>
+    <label><input type="checkbox" id="lyClouds" checked> 云层</label>
+    <label><input type="checkbox" id="lyLights" checked> 城市灯光</label>
+    <label><input type="checkbox" id="lyAtmo" checked> 大气辉光</label>
+    <label><input type="checkbox" id="lyOrbits" checked> 卫星与轨道</label>
+    <label><input type="checkbox" id="lyMoon" checked> 月球</label>
+    <label><input type="checkbox" id="lyLabels" checked> 城市标注</label>
+    <div class="btnrow">
+      <button id="btnPause">⏸ 暂停</button>
+      <button id="btnReset">↺ 重置视角</button>
+    </div>
+  </div>
+</div>
+
+<!-- 城市信息卡 -->
+<div id="cityCard">
+  <div class="close" id="cardClose">✕</div>
+  <div class="name" id="cardName">—</div>
+  <div class="country" id="cardCountry">—</div>
+  <div class="lt">当地时间　<b id="cardTime">--:--</b></div>
+  <div class="meta" id="cardMeta">—</div>
+  <div class="desc" id="cardDesc">—</div>
+</div>
+
 <div id="info">
-  <div style="margin-bottom:6px">拖动旋转 · 滚轮缩放 · 自动运行</div>
+  <div style="margin-bottom:6px">拖动旋转 · 滚轮缩放 · 点击城市查看详情</div>
   <div>
     <span style="color:#00e5ff">■</span> 近地卫星&nbsp;
     <span style="color:#8aff5a">■</span> 极地卫星&nbsp;
@@ -116,9 +244,12 @@ const earthMat = new THREE.MeshStandardMaterial({
   roughness: 1.0,
 });
 // 注入夜面城市灯光
+let earthShader = null;              // 供图层开关调节灯光强度
 earthMat.onBeforeCompile = (shader) => {
+  earthShader = shader;
   shader.uniforms.uLights = { value: lightsMap };
   shader.uniforms.uSunDir = { value: sunDir };
+  shader.uniforms.uLightsOn = { value: 1.0 };
   shader.vertexShader = shader.vertexShader.replace(
     "#include <common>",
     "#include <common>\n varying vec3 vWNormal; varying vec2 vUvL;"
@@ -128,14 +259,14 @@ earthMat.onBeforeCompile = (shader) => {
   );
   shader.fragmentShader = shader.fragmentShader.replace(
     "#include <common>",
-    "#include <common>\n uniform sampler2D uLights; uniform vec3 uSunDir; varying vec3 vWNormal; varying vec2 vUvL;"
+    "#include <common>\n uniform sampler2D uLights; uniform vec3 uSunDir; uniform float uLightsOn; varying vec3 vWNormal; varying vec2 vUvL;"
   ).replace(
     "#include <dithering_fragment>",
     `#include <dithering_fragment>
      float d = dot(normalize(vWNormal), normalize(uSunDir));
      float night = smoothstep(0.05, -0.25, d);
      vec3 city = texture2D(uLights, vUvL).rgb;
-     gl_FragColor.rgb += city * night * 2.2;`
+     gl_FragColor.rgb += city * night * 2.2 * uLightsOn;`
   );
 };
 
@@ -245,7 +376,7 @@ function buildOrbit(o){
   scene.add(group);
 
   const rate = o.geoSync ? EARTH_RATE : K / Math.pow(a, 1.5);
-  orbits.push({ sat, a, e, rate, M0: deg(o.phase||0) });
+  orbits.push({ sat, a, e, rate, M0: deg(o.phase||0), group, isMoon: !!o.moon });
 }
 
 // —— 四类卫星 + 月球 ——
@@ -256,57 +387,58 @@ buildOrbit({ a:4.20, e:0.62, incl:63.4, argp:270, color:0xff5ce0, phase:0, size:
 buildOrbit({ a:12.0, e:0.045,incl:5.1,  color:0xcfcfcf, phase:200, moon:true, dim:true });        // 月球
 
 // ================= 全球热门旅游城市标注点 =================
+// tz = 标准时区(UTC 偏移小时，未计夏令时)；desc 为一句话简介
 const CITIES = [
-  { name:"巴黎",     lat:48.85, lon:2.35   },
-  { name:"伦敦",     lat:51.51, lon:-0.13  },
-  { name:"罗马",     lat:41.90, lon:12.50  },
-  { name:"巴塞罗那", lat:41.39, lon:2.17   },
-  { name:"伊斯坦布尔",lat:41.01, lon:28.98 },
-  { name:"迪拜",     lat:25.20, lon:55.27  },
-  { name:"纽约",     lat:40.71, lon:-74.01 },
-  { name:"东京",     lat:35.68, lon:139.69 },
-  { name:"北京",     lat:39.90, lon:116.40 },
-  { name:"曼谷",     lat:13.76, lon:100.50 },
-  { name:"新加坡",   lat:1.35,  lon:103.82 },
-  { name:"悉尼",     lat:-33.87,lon:151.21 },
-  { name:"台北",     lat:25.03, lon:121.57 },
-  { name:"首尔",     lat:37.57, lon:126.98 },
-  { name:"洛杉矶",   lat:34.05, lon:-118.24 },
-  { name:"圣保罗",   lat:-23.55,lon:-46.63 },
-  { name:"布宜诺斯艾利斯", lat:-34.60, lon:-58.38 },
-  { name:"多伦多",   lat:43.65, lon:-79.38 },
-  { name:"温哥华",   lat:49.28, lon:-123.12 },
-  { name:"夏威夷",   lat:21.31, lon:-157.86 },
-  { name:"新德里",   lat:28.61, lon:77.21  },
-  { name:"马德里",   lat:40.42, lon:-3.70  },
-  { name:"莫斯科",   lat:55.76, lon:37.62  },
-  { name:"圣彼得堡", lat:59.93, lon:30.34  },
-  { name:"开罗",     lat:30.04, lon:31.24  },
-  { name:"墨尔本",   lat:-37.81,lon:144.96 },
-  { name:"上海",     lat:31.23, lon:121.47 },
-  { name:"大阪",     lat:34.69, lon:135.50 },
-  { name:"吉隆坡",   lat:3.14,  lon:101.69 },
-  { name:"班加罗尔", lat:12.97, lon:77.59  },
-  { name:"孟买",     lat:19.08, lon:72.88  },
-  { name:"里约热内卢", lat:-22.91, lon:-43.17 },
-  { name:"约翰内斯堡", lat:-26.20, lon:28.05 },
-  { name:"亚的斯亚贝巴", lat:9.03, lon:38.74 },
-  { name:"卡萨布兰卡", lat:33.57, lon:-7.59 },
-  { name:"内罗毕",   lat:-1.29, lon:36.82  },
-  { name:"惠灵顿",   lat:-41.29,lon:174.78 },
-  { name:"奥克兰",   lat:-36.85,lon:174.76 },
-  { name:"利马",     lat:-12.05,lon:-77.04 },
-  { name:"波哥大",   lat:4.71,  lon:-74.07 },
-  { name:"圣地亚哥", lat:-33.45,lon:-70.67 },
-  { name:"柏林",     lat:52.52, lon:13.40  },
-  { name:"慕尼黑",   lat:48.14, lon:11.58  },
-  { name:"威尼斯",   lat:45.44, lon:12.32  },
-  { name:"布拉格",   lat:50.08, lon:14.44  },
-  { name:"佛罗伦萨", lat:43.77, lon:11.26  },
-  { name:"雅典",     lat:37.98, lon:23.73  },
-  { name:"维也纳",   lat:48.21, lon:16.37  },
-  { name:"哥本哈根", lat:55.68, lon:12.57  },
-  { name:"阿姆斯特丹",lat:52.37, lon:4.90   },
+  { name:"巴黎",     lat:48.85, lon:2.35,   country:"法国",       tz:1,    desc:"塞纳河畔的浪漫之都，埃菲尔铁塔与卢浮宫所在地。" },
+  { name:"伦敦",     lat:51.51, lon:-0.13,  country:"英国",       tz:0,    desc:"泰晤士河穿城而过，大本钟与塔桥的千年古都。" },
+  { name:"罗马",     lat:41.90, lon:12.50,  country:"意大利",     tz:1,    desc:"永恒之城，斗兽场与梵蒂冈见证两千年文明。" },
+  { name:"巴塞罗那", lat:41.39, lon:2.17,   country:"西班牙",     tz:1,    desc:"高迪建筑之城，圣家堂与地中海阳光交织。" },
+  { name:"伊斯坦布尔",lat:41.01, lon:28.98, country:"土耳其",     tz:3,    desc:"横跨欧亚，博斯普鲁斯海峡连接两大洲。" },
+  { name:"迪拜",     lat:25.20, lon:55.27,  country:"阿联酋",     tz:4,    desc:"沙漠中崛起的未来都市，哈利法塔刺破天际。" },
+  { name:"纽约",     lat:40.71, lon:-74.01, country:"美国",       tz:-5,   desc:"不夜之城，自由女神与曼哈顿天际线的舞台。" },
+  { name:"东京",     lat:35.68, lon:139.69, country:"日本",       tz:9,    desc:"传统与霓虹并存，全球最大都会区之一。" },
+  { name:"北京",     lat:39.90, lon:116.40, country:"中国",       tz:8,    desc:"千年古都，故宫与长城见证中华文明。" },
+  { name:"曼谷",     lat:13.76, lon:100.50, country:"泰国",       tz:7,    desc:"金色佛塔与街头美食汇聚的东南亚枢纽。" },
+  { name:"新加坡",   lat:1.35,  lon:103.82, country:"新加坡",     tz:8,    desc:"赤道上的花园城市国家，金融与美食之都。" },
+  { name:"悉尼",     lat:-33.87,lon:151.21, country:"澳大利亚",   tz:10,   desc:"歌剧院与海港大桥定义的南半球明珠。" },
+  { name:"台北",     lat:25.03, lon:121.57, country:"中国台湾",   tz:8,    desc:"夜市文化与 101 大楼交织的活力之城。" },
+  { name:"首尔",     lat:37.57, lon:126.98, country:"韩国",       tz:9,    desc:"汉江奇迹的中心，古宫与流行文化并存。" },
+  { name:"洛杉矶",   lat:34.05, lon:-118.24,country:"美国",       tz:-8,   desc:"好莱坞与阳光海岸，天使之城。" },
+  { name:"圣保罗",   lat:-23.55,lon:-46.63, country:"巴西",       tz:-3,   desc:"南美最大都市，多元文化的经济心脏。" },
+  { name:"布宜诺斯艾利斯", lat:-34.60, lon:-58.38, country:"阿根廷", tz:-3, desc:"探戈的故乡，被称为南美的巴黎。" },
+  { name:"多伦多",   lat:43.65, lon:-79.38, country:"加拿大",     tz:-5,   desc:"安大略湖畔的多元文化之都，CN 塔矗立。" },
+  { name:"温哥华",   lat:49.28, lon:-123.12,country:"加拿大",     tz:-8,   desc:"雪山与海洋环抱，最宜居城市之一。" },
+  { name:"夏威夷",   lat:21.31, lon:-157.86,country:"美国",       tz:-10,  desc:"太平洋上的火山群岛，冲浪与热带天堂。" },
+  { name:"新德里",   lat:28.61, lon:77.21,  country:"印度",       tz:5.5,  desc:"古今交汇的印度首都，红堡与莲花庙。" },
+  { name:"马德里",   lat:40.42, lon:-3.70,  country:"西班牙",     tz:1,    desc:"艺术与美食之都，普拉多博物馆的家。" },
+  { name:"莫斯科",   lat:55.76, lon:37.62,  country:"俄罗斯",     tz:3,    desc:"红场与克里姆林宫，洋葱穹顶的壮丽都会。" },
+  { name:"圣彼得堡", lat:59.93, lon:30.34,  country:"俄罗斯",     tz:3,    desc:"北方威尼斯，冬宫与白夜闻名于世。" },
+  { name:"开罗",     lat:30.04, lon:31.24,  country:"埃及",       tz:2,    desc:"尼罗河畔的千年古都，金字塔近在咫尺。" },
+  { name:"墨尔本",   lat:-37.81,lon:144.96, country:"澳大利亚",   tz:10,   desc:"咖啡与艺术之城，多次入选最宜居城市。" },
+  { name:"上海",     lat:31.23, lon:121.47, country:"中国",       tz:8,    desc:"东方明珠与外滩交映的国际金融中心。" },
+  { name:"大阪",     lat:34.69, lon:135.50, country:"日本",       tz:9,    desc:"天下厨房，章鱼烧与道顿堀的活力之城。" },
+  { name:"吉隆坡",   lat:3.14,  lon:101.69, country:"马来西亚",   tz:8,    desc:"双子塔矗立的多元文化热带首都。" },
+  { name:"班加罗尔", lat:12.97, lon:77.59,  country:"印度",       tz:5.5,  desc:"印度硅谷，四季宜人的科技之城。" },
+  { name:"孟买",     lat:19.08, lon:72.88,  country:"印度",       tz:5.5,  desc:"宝莱坞之都，印度的金融与娱乐中心。" },
+  { name:"里约热内卢", lat:-22.91, lon:-43.17, country:"巴西",    tz:-3,   desc:"耶稣像俯瞰的狂欢之城，科帕卡巴纳海滩。" },
+  { name:"约翰内斯堡", lat:-26.20, lon:28.05, country:"南非",     tz:2,    desc:"黄金之城，非洲最大的经济枢纽。" },
+  { name:"亚的斯亚贝巴", lat:9.03, lon:38.74, country:"埃塞俄比亚",tz:3,    desc:"非洲之都，非盟总部所在的高原城市。" },
+  { name:"卡萨布兰卡", lat:33.57, lon:-7.59, country:"摩洛哥",     tz:1,    desc:"大西洋畔的白色之城，哈桑二世清真寺。" },
+  { name:"内罗毕",   lat:-1.29, lon:36.82,  country:"肯尼亚",     tz:3,    desc:"东非门户，城郊即是野生动物国家公园。" },
+  { name:"惠灵顿",   lat:-41.29,lon:174.78, country:"新西兰",     tz:12,   desc:"世界最南首都，海风与电影工业之城。" },
+  { name:"奥克兰",   lat:-36.85,lon:174.76, country:"新西兰",     tz:12,   desc:"千帆之都，火山与海湾环绕的港市。" },
+  { name:"利马",     lat:-12.05,lon:-77.04, country:"秘鲁",       tz:-5,   desc:"太平洋畔的美食之都，通往马丘比丘的门户。" },
+  { name:"波哥大",   lat:4.71,  lon:-74.07, country:"哥伦比亚",   tz:-5,   desc:"安第斯高原上的首都，黄金博物馆闻名。" },
+  { name:"圣地亚哥", lat:-33.45,lon:-70.67, country:"智利",       tz:-4,   desc:"安第斯雪山脚下的首都，葡萄酒之乡。" },
+  { name:"柏林",     lat:52.52, lon:13.40,  country:"德国",       tz:1,    desc:"勃兰登堡门见证历史，前卫的艺术之都。" },
+  { name:"慕尼黑",   lat:48.14, lon:11.58,  country:"德国",       tz:1,    desc:"啤酒节故乡，阿尔卑斯山麓的巴伐利亚重镇。" },
+  { name:"威尼斯",   lat:45.44, lon:12.32,  country:"意大利",     tz:1,    desc:"水城，纵横水道与贡多拉的浪漫之地。" },
+  { name:"布拉格",   lat:50.08, lon:14.44,  country:"捷克",       tz:1,    desc:"百塔之城，查理大桥与老城广场如童话。" },
+  { name:"佛罗伦萨", lat:43.77, lon:11.26,  country:"意大利",     tz:1,    desc:"文艺复兴的摇篮，乌菲兹与圣母百花大教堂。" },
+  { name:"雅典",     lat:37.98, lon:23.73,  country:"希腊",       tz:2,    desc:"西方文明的发源地，卫城帕特农神庙屹立。" },
+  { name:"维也纳",   lat:48.21, lon:16.37,  country:"奥地利",     tz:1,    desc:"音乐之都，金色大厅与哈布斯堡的辉煌。" },
+  { name:"哥本哈根", lat:55.68, lon:12.57,  country:"丹麦",       tz:1,    desc:"小美人鱼与自行车之城，北欧幸福样本。" },
+  { name:"阿姆斯特丹",lat:52.37, lon:4.90,   country:"荷兰",       tz:1,    desc:"运河环绕的自行车之都，郁金香与画家之乡。" },
 ];
 
 // 经纬度 → 球面三维坐标（匹配等距圆柱投影地图贴图）
@@ -362,7 +494,7 @@ CITIES.forEach(c => {
   label.position.copy(outward.clone().multiplyScalar(1.06));
   markersGroup.add(label);
 
-  cityMarkers.push({ dot, ring, stem, el, outward });
+  cityMarkers.push({ dot, ring, stem, el, outward, city: c });
 });
 
 // 地球略微倾斜 23.5°
@@ -385,39 +517,198 @@ const LABEL_SHOW_DIST = 2.5;
 const _wp = new THREE.Vector3(), _toCam = new THREE.Vector3();
 function updateCityMarkers(){
   const pulse = 1 + 0.35 * Math.sin(elapsed * 3);
-  const showLabels = camera.position.distanceTo(controls.target) < LABEL_SHOW_DIST;  // 已放大才显示名称
+  const on = layers.labels;                       // 图层总开关
+  const showLabels = on && camera.position.distanceTo(controls.target) < LABEL_SHOW_DIST;  // 已放大才显示名称
   for (const m of cityMarkers){
-    m.ring.scale.setScalar(pulse);
-    m.ring.material.opacity = 0.9 - 0.5 * (pulse - 0.65);
+    const sel = m === selectedMarker;
+    m.ring.scale.setScalar(sel ? pulse * 1.6 : pulse);
+    m.ring.material.opacity = (sel ? 1.0 : 0.9) - 0.5 * (pulse - 0.65);
+    m.ring.material.color.setHex(sel ? 0x4a9eff : 0xe8853a);
 
     m.dot.getWorldPosition(_wp);                 // 世界坐标（地球在原点）
     const normal = _wp.clone().normalize();      // 该点朝外法线
     _toCam.copy(camera.position).sub(_wp);        // 指向相机
     const facing = normal.dot(_toCam.normalize()); // >0 为正面
-    const vis = showLabels && facing > 0.12;      // 需已放大且在正面
+    const vis = on && facing > 0.12 && (showLabels || sel);  // 已放大在正面(或被选中)才显示名称
     m.el.style.opacity = vis ? 1 : 0;
-    m.dot.visible = m.ring.visible = m.stem.visible = facing > -0.1;
+    m.dot.visible = m.ring.visible = m.stem.visible = on && facing > -0.1;
   }
 }
+
+// ================= 运行状态 =================
+const layers = { labels: true };          // 城市标注总开关（updateCityMarkers 读取）
+let selectedMarker = null;                 // 当前选中的城市标记
+let mode = "realtime";                     // "realtime" 真实昼夜 | "demo" 演示自转
+let paused = false;
+let spinMul = 1.0;                         // 演示自转速度倍率
+
+// ---- 功能1：按真实时间计算太阳方向（昼夜线与现实一致） ----
+// 计算太阳直射点：纬度=赤纬 δ，经度由 UTC 时刻决定
+function subsolarPoint(date){
+  const yStart = Date.UTC(date.getUTCFullYear(), 0, 0);
+  const doy = (Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) - yStart) / 86400000;
+  const decl = -23.44 * Math.cos(deg(360 / 365 * (doy + 10)));   // 赤纬近似
+  const hUTC = date.getUTCHours() + date.getUTCMinutes()/60 + date.getUTCSeconds()/3600;
+  let lon = (12 - hUTC) * 15;                                    // 正午所在经线
+  while (lon > 180) lon -= 360; while (lon < -180) lon += 360;
+  return { lat: decl, lon };
+}
+const _localSun = new THREE.Vector3();
+let subsolarLon = 0;
+function updateSun(){
+  if (mode === "realtime"){
+    const ss = subsolarPoint(new Date());
+    subsolarLon = ss.lon;
+    // 直射点在“地理坐标系”，乘以地球四元数(含倾角/自转)得到世界方向 → 被照亮的正是真实地理位置
+    _localSun.copy(latLonToVec3(ss.lat, ss.lon, 1)).applyQuaternion(earth.quaternion);
+    sunDir.copy(_localSun).normalize();          // earthMat/大气 shader 共享同一 sunDir，自动更新
+  }
+  sunLight.position.copy(sunDir).multiplyScalar(10);
+}
+
+// ---- 功能1：时钟叠层 ----
+const clkUTC = document.getElementById("clkUTC");
+const clkLocal = document.getElementById("clkLocal");
+const clkSun = document.getElementById("clkSun");
+const pad = (n) => String(n).padStart(2, "0");
+function fmtLonLabel(lon){
+  const dir = lon >= 0 ? "E" : "W";
+  return Math.abs(lon).toFixed(0) + "°" + dir;
+}
+let lastSec = -1;
+function updateClock(){
+  const now = new Date();
+  const s = now.getUTCSeconds();
+  if (s === lastSec) return;                       // 每秒刷新一次
+  lastSec = s;
+  clkUTC.textContent = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(s)} UTC`;
+  clkLocal.textContent = "本地 " + now.toLocaleTimeString("zh-CN", { hour12:false });
+  clkSun.textContent = (mode === "realtime")
+    ? `☀ 正午经线 ${fmtLonLabel(subsolarLon)}`
+    : "▶ 演示自转中";
+  if (selectedMarker) refreshCardTime();           // 信息卡当地时间同步走秒
+}
+
+// ---- 功能2：点击城市 → 信息卡 ----
+const card = document.getElementById("cityCard");
+const cardName = document.getElementById("cardName");
+const cardCountry = document.getElementById("cardCountry");
+const cardTime = document.getElementById("cardTime");
+const cardMeta = document.getElementById("cardMeta");
+const cardDesc = document.getElementById("cardDesc");
+function cityLocalTime(tz){
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;   // → UTC 毫秒
+  const d = new Date(utcMs + tz * 3600000);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function refreshCardTime(){
+  if (selectedMarker) cardTime.textContent = cityLocalTime(selectedMarker.city.tz);
+}
+function openCard(m){
+  selectedMarker = m;
+  const c = m.city;
+  cardName.textContent = c.name;
+  cardCountry.textContent = c.country;
+  cardTime.textContent = cityLocalTime(c.tz);
+  const tzs = (c.tz >= 0 ? "+" : "") + c.tz;
+  const latS = Math.abs(c.lat).toFixed(2) + "°" + (c.lat >= 0 ? "N" : "S");
+  const lonS = Math.abs(c.lon).toFixed(2) + "°" + (c.lon >= 0 ? "E" : "W");
+  cardMeta.textContent = `${latS}, ${lonS}　·　时区 UTC${tzs}`;
+  cardDesc.textContent = c.desc;
+  card.classList.add("show");
+}
+function closeCard(){ selectedMarker = null; card.classList.remove("show"); }
+document.getElementById("cardClose").addEventListener("click", closeCard);
+
+// 点击(非拖拽)检测：射线击中地球 → 就近匹配城市
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const _localHit = new THREE.Vector3();
+let downX = 0, downY = 0, downT = 0;
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  downX = e.clientX; downY = e.clientY; downT = performance.now();
+});
+renderer.domElement.addEventListener("pointerup", (e) => {
+  const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+  if (moved > 6 || performance.now() - downT > 500) return;       // 视为拖拽/长按
+  ndc.x = (e.clientX / innerWidth) * 2 - 1;
+  ndc.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObject(earth, false)[0];
+  if (!hit){ closeCard(); return; }
+  earth.worldToLocal(_localHit.copy(hit.point)).normalize();       // 命中点 → 地球本地朝外法线
+  let best = null, bestDot = Math.cos(deg(7));                      // 阈值 ~7°
+  for (const m of cityMarkers){
+    const d = _localHit.dot(m.outward);
+    if (d > bestDot){ bestDot = d; best = m; }
+  }
+  if (best) openCard(best); else closeCard();
+});
+
+// ---- 功能3：控制面板 ----
+const $ = (id) => document.getElementById(id);
+$("panelHd").addEventListener("click", () => $("panel").classList.toggle("collapsed"));
+if (innerWidth < 560) $("panel").classList.add("collapsed");       // 手机默认收起
+
+const modeReal = $("modeReal"), modeDemo = $("modeDemo"), speedRow = $("speedRow");
+function setMode(m){
+  mode = m;
+  modeReal.classList.toggle("on", m === "realtime");
+  modeDemo.classList.toggle("on", m === "demo");
+  speedRow.style.display = (m === "demo") ? "flex" : "none";
+  // 切到实时时立刻按当前时间归位太阳；切到演示时冻结当前 sunDir 于世界坐标
+  if (m === "realtime") updateSun();
+}
+modeReal.addEventListener("click", () => setMode("realtime"));
+modeDemo.addEventListener("click", () => setMode("demo"));
+$("speed").addEventListener("input", (e) => { spinMul = parseFloat(e.target.value); });
+
+$("lyClouds").addEventListener("change", (e) => { clouds.visible = e.target.checked; });
+$("lyAtmo").addEventListener("change",   (e) => { atmosphere.visible = e.target.checked; });
+$("lyLights").addEventListener("change", (e) => { if (earthShader) earthShader.uniforms.uLightsOn.value = e.target.checked ? 1 : 0; });
+$("lyOrbits").addEventListener("change", (e) => {
+  for (const ob of orbits) if (!ob.isMoon) ob.group.visible = e.target.checked;
+});
+$("lyMoon").addEventListener("change", (e) => {
+  for (const ob of orbits) if (ob.isMoon) ob.group.visible = e.target.checked;
+});
+$("lyLabels").addEventListener("change", (e) => { layers.labels = e.target.checked; });
+
+const btnPause = $("btnPause");
+btnPause.addEventListener("click", () => {
+  paused = !paused;
+  btnPause.textContent = paused ? "▶ 继续" : "⏸ 暂停";
+});
+const HOME_POS = new THREE.Vector3(0, 0.6, 3.2);
+$("btnReset").addEventListener("click", () => {
+  camera.position.copy(HOME_POS);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
 
 const clock = new THREE.Clock();
 let elapsed = 0;
 (function animate(){
   requestAnimationFrame(animate);
   const dt = clock.getDelta();
-  elapsed += dt;
-  earth.rotation.y  += dt * EARTH_RATE;
-  clouds.rotation.y += dt * 0.08;   // 云层稍快
+  if (!paused){
+    elapsed += dt;
+    if (mode === "demo") earth.rotation.y += dt * EARTH_RATE * spinMul;  // 实时模式下地球不自转，昼夜线才准
+    clouds.rotation.y += dt * 0.08;   // 云层稍快
 
-  // 更新卫星/月球位置（开普勒运动，近地点快、远地点慢）
-  for (const ob of orbits){
-    const M = ob.M0 + ob.rate * elapsed;
-    const E = solveKepler(M, ob.e);
-    const nu = trueAnomaly(E, ob.e);
-    const r  = ob.a * (1 - ob.e * Math.cos(E));
-    ob.sat.position.set(r*Math.cos(nu), 0, r*Math.sin(nu));
+    // 更新卫星/月球位置（开普勒运动，近地点快、远地点慢）
+    for (const ob of orbits){
+      const M = ob.M0 + ob.rate * elapsed;
+      const E = solveKepler(M, ob.e);
+      const nu = trueAnomaly(E, ob.e);
+      const r  = ob.a * (1 - ob.e * Math.cos(E));
+      ob.sat.position.set(r*Math.cos(nu), 0, r*Math.sin(nu));
+    }
   }
 
+  updateSun();
+  updateClock();
   updateCityMarkers();
   controls.update();
   renderer.render(scene, camera);
