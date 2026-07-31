@@ -2,7 +2,7 @@
 
 一个基于 WebGL / [Three.js](https://threejs.org) 的高逼真 3D 地球，支持鼠标/触摸交互，带真实卫星贴图、昼夜城市灯光、云层、大气辉光、四类卫星轨道、月球公转与全球热门旅游城市标注。
 
-**完全离线、单文件即可运行** —— 双击 `earth-standalone.html` 就能看到。
+采用**分离部署**（`index.html` + `libs/` + `assets/`），经服务器打开：不会黑球，并保留**移动端渐进加载**——首屏只需下载 ~72KB 日面图即可看到地球，其余细节后台补齐，首屏更快。
 
 ---
 
@@ -17,43 +17,47 @@
 | **星空** | 4000 颗程序生成的背景星 |
 | **卫星轨道** | 近地卫星（LEO）· 极地卫星 · 同步卫星（GEO）· 大椭圆轨道，均按**开普勒运动**（近地点快、远地点慢）|
 | **月球** | 带真实月面贴图，绕地公转 |
-| **城市标注** | 26 座全球热门旅游城市，脉冲光环 + 名称标签，**背面自动隐藏** |
+| **城市标注** | 50 座全球热门旅游城市，脉冲光环 + 名称标签，**背面自动隐藏**；**缩小看全球时隐藏名称、放大靠近后才显示**，避免文字堆叠 |
 
 ### 标注的城市
-覆盖六大洲，共 26 座：
+覆盖六大洲，共 50 座：
 
-- **亚洲**：北京 · 东京 · 首尔 · 台北 · 曼谷 · 新加坡 · 新德里
-- **欧洲**：巴黎 · 伦敦 · 罗马 · 巴塞罗那 · 马德里 · 伊斯坦布尔 · 莫斯科 · 圣彼得堡
+- **亚洲**：北京 · 上海 · 东京 · 大阪 · 首尔 · 台北 · 曼谷 · 新加坡 · 吉隆坡 · 新德里 · 孟买 · 班加罗尔
+- **欧洲**：巴黎 · 伦敦 · 罗马 · 威尼斯 · 佛罗伦萨 · 巴塞罗那 · 马德里 · 柏林 · 慕尼黑 · 维也纳 · 阿姆斯特丹 · 哥本哈根 · 布拉格 · 雅典 · 伊斯坦布尔 · 莫斯科 · 圣彼得堡
 - **北美**：纽约 · 洛杉矶 · 多伦多 · 温哥华 · 夏威夷
-- **南美**：圣保罗 · 布宜诺斯艾利斯
-- **大洋洲**：悉尼 · 墨尔本
-- **非洲 / 中东**：开罗 · 迪拜
+- **南美**：圣保罗 · 里约热内卢 · 布宜诺斯艾利斯 · 利马 · 波哥大 · 圣地亚哥
+- **大洋洲**：悉尼 · 墨尔本 · 奥克兰 · 惠灵顿
+- **非洲 / 中东**：开罗 · 迪拜 · 卡萨布兰卡 · 内罗毕 · 亚的斯亚贝巴 · 约翰内斯堡
 
 ---
 
-## 🚀 快速开始
+## 🚀 运行方式
 
-### 方式一：单文件版（推荐，随处可用）
-直接双击打开：
+本项目通过 WebGL 加载外部贴图，**必须经由 HTTP(S) 打开**，不能直接双击 `index.html`。
 
-```
-earth-standalone.html
-```
+> ⚠️ 直接双击（`file://`）会得到**黑色地球**——浏览器把本地图片视为跨域资源、污染纹理，WebGL 拒绝加载。经服务器打开时贴图与页面同源，不存在此问题。
 
-一个文件包含全部依赖（引擎 + 贴图 + 逻辑），无需网络、无需服务器、无需其它文件。可随意拷贝到 U 盘或发送给他人。
+### 本地预览（任选其一）
+在项目目录执行，然后浏览器访问打印出的地址：
 
-### 方式二：开发版（便于修改）
-打开 `earth.html`（依赖同目录的 `libs/` 与 `assets/`）。
-
-> ⚠️ **注意**：`earth.html` 若通过 `file://` 双击打开可能出现「黑球」——因为浏览器把本地图片当跨域资源，WebGL 拒绝加载。它已内置 Base64 回退（`libs/textures.js`）来规避此问题；若仍异常，请改用**方式一**，或用本地服务器打开（见下）。
-
-### 用本地服务器打开（可选）
 ```bash
-# 任选其一，在项目目录执行
-npx http-server .        # Node
-python -m http.server    # Python
+npx http-server .        # Node（无需预装，首次会自动下载）
+# 或
+python -m http.server    # Python 3
 ```
-然后浏览器访问 `http://localhost:8080/earth.html`。
+
+访问 `http://localhost:8080/`（端口以命令输出为准；`index.html` 会被默认加载）。
+
+### 部署到服务器
+把整个目录上传即可（保持相对结构不变）：
+
+```
+index.html
+libs/
+assets/
+```
+
+支持任意静态托管：Nginx / Gitee Pages / GitHub Pages / 腾讯云 COS / Netlify / Vercel 等。建议开启 **gzip / brotli**，`.js` / `.html` 可再减小 ~25%。
 
 ---
 
@@ -62,8 +66,10 @@ python -m http.server    # Python
 | 操作 | 效果 |
 |------|------|
 | 拖动 / 单指滑动 | 旋转视角 |
-| 滚轮 / 双指捏合 | 缩放（1.4 ~ 45 倍地球半径）|
+| 滚轮 / 双指捏合 | 缩放（1.4 ~ 45 倍地球半径）；**放大靠近后城市名才显示**，缩小看全球时自动隐藏 |
 | 自动 | 地球自转、卫星运行、月球公转 |
+
+> 城市名显隐由相机距离阈值 `LABEL_SHOW_DIST`（`index.html` 中，默认 `2.5`）控制：调大更早显示、调小需放得更大才显示。
 
 ---
 
@@ -71,44 +77,37 @@ python -m http.server    # Python
 
 ```
 .
-├── earth-standalone.html   # 🚀 单文件版（一切内联，到处可跑）
-├── earth.html              # 开发版（引用下方 libs/ 与 assets/）
-├── libs/                   # JS 库
-│   ├── three.min.js            # Three.js r128 引擎
-│   ├── OrbitControls.js        # 相机交互控制
-│   ├── CSS2DRenderer.js        # 城市名 HTML 标签渲染
-│   └── textures.js             # 6 张贴图的 Base64 内嵌数据
-├── assets/                 # 原始贴图
-│   ├── earth_atmos_2048.jpg    # 日面卫星图
-│   ├── earth_normal_2048.jpg   # 地形法线
-│   ├── earth_specular_2048.jpg # 海洋高光
-│   ├── earth_lights_2048.png   # 夜间城市灯光
-│   ├── earth_clouds_1024.png   # 云层
-│   └── moon_1024.jpg           # 月面
+├── index.html                    # 主文件（经服务器打开）
+├── libs/                         # JS 库
+│   ├── three.min.js                  # Three.js r128 引擎
+│   ├── OrbitControls.js              # 相机交互控制
+│   └── CSS2DRenderer.js              # 城市名 HTML 标签渲染
+├── assets/                       # 贴图（1024 优化版，~0.69MB）
+│   ├── earth_atmos_1024.jpg          # 日面卫星图（首屏关键路径，~72KB）
+│   ├── earth_normal_1024.jpg         # 地形法线
+│   ├── earth_specular_1024.jpg       # 海洋高光
+│   ├── earth_lights_1024.jpg         # 夜间城市灯光
+│   ├── earth_clouds_1024.png         # 云层（含透明通道）
+│   └── moon_1024.jpg                 # 月面
 └── README.md
 ```
 
 ---
 
-## 🔧 重新打包单文件版
+## ⚡ 性能优化说明
 
-修改 `earth.html` 后，用以下命令重新生成 `earth-standalone.html`（需 Node.js）：
+针对移动端首屏加载做了两项关键优化：
 
-```bash
-node -e '
-const fs=require("fs");
-let html=fs.readFileSync("earth.html","utf8");
-const libs=["libs/three.min.js","libs/OrbitControls.js","libs/CSS2DRenderer.js","libs/textures.js"];
-for(const p of libs){
-  let code=fs.readFileSync(p,"utf8").replace(/<\/script>/g,"<\\/script>");
-  html=html.replace(`<script src="${p}"></script>`,`<script>\n${code}\n</script>`);
-}
-fs.writeFileSync("earth-standalone.html",html);
-console.log("done:",(fs.statSync("earth-standalone.html").size/1048576).toFixed(2),"MB");
-'
-```
+1. **贴图分辨率下调至 1024**：贴图总量从 ~2.2MB 降到 ~0.69MB；夜灯图由 PNG 转 JPG（735KB → 39KB）。
+2. **渐进加载**：优先加载 ~72KB 日面图并立即渲染出地球，其余贴图（法线/高光/夜灯/云层/月球）在后台并行加载、就绪后自动浮现——首屏可见时间大幅提前。
 
-若更换了 `assets/` 里的贴图，需先重新生成 `libs/textures.js`（把图片转 Base64），再执行上面的打包命令。
+分离部署（外链 `assets/`）正是为了让渐进加载在网络层真正生效：浏览器可以先拿到小的日面图渲染、再并行补齐其余贴图；若把贴图全内联进单个 HTML，则必须整份下载完才能渲染，反而拖慢移动端首屏。
+
+### 进一步提速
+- 服务器开启 **gzip / brotli** 压缩，`.js` / `.html` 可再减小 ~25%。
+- 若需更快，可把 `assets/` 里的 1024 贴图进一步降到 512（辅助贴图尤其合适）。
+
+> 原始 2048 高清母版可从 Three.js 官方示例（`threejs.org/examples/textures/planets/`）重新获取。
 
 ---
 
@@ -116,8 +115,8 @@ console.log("done:",(fs.statSync("earth-standalone.html").size/1048576).toFixed(
 
 微信打开的是**网址（URL）**而非本地文件，因此需先托管到 HTTPS：
 
-1. 将 `earth-standalone.html` 上传到静态托管（Gitee Pages / GitHub Pages / 腾讯云 COS / Netlify 等）。
-2. 拿到 `https://...` 链接，发到微信点开即可（微信内置浏览器支持 WebGL）。
+1. 将整个目录部署到静态托管（Gitee Pages / 腾讯云 COS / Netlify 等），得到 `https://...` 链接。
+2. 把链接发到微信点开即可（微信内置浏览器支持 WebGL）。
 3. iOS 上若不流畅，点右上角「⋯ → 在浏览器打开」。
 
 > 直接把 `.html` 文件发到聊天窗口**不会**渲染，必须用链接。
