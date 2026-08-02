@@ -20,14 +20,16 @@
     font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 15px;
     transition: opacity .8s ease;
   }
-  .city-label {
+  .city-label, .nba-label {
     font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
     font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap;
     padding: 2px 7px; border-radius: 10px;
-    background: rgba(232,133,58,.85); border: 1px solid rgba(255,255,255,.35);
+    border: 1px solid rgba(255,255,255,.35);
     text-shadow: 0 1px 2px rgba(0,0,0,.6); pointer-events: none;
     transform: translateY(-14px); transition: opacity .25s ease;
   }
+  .city-label { background: rgba(232,133,58,.85); }
+  .nba-label  { background: rgba(124,58,237,.88); border-color: rgba(255,255,255,.42); }
   :root{
     --ui-font: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
     --glass: rgba(14,20,34,.72);
@@ -141,6 +143,7 @@
     <label><input type="checkbox" id="lyOrbits" checked> 卫星与轨道</label>
     <label><input type="checkbox" id="lyMoon" checked> 月球</label>
     <label><input type="checkbox" id="lyLabels" checked> 城市标注</label>
+    <label><input type="checkbox" id="lyNBA"> NBA 球队</label>
     <div class="btnrow">
       <button id="btnPause">⏸ 暂停</button>
       <button id="btnReset">↺ 重置视角</button>
@@ -153,7 +156,7 @@
   <div class="close" id="cardClose">✕</div>
   <div class="name" id="cardName">—</div>
   <div class="country" id="cardCountry">—</div>
-  <div class="lt">当地时间　<b id="cardTime">--:--</b></div>
+  <div class="lt" id="cardLt">当地时间　<b id="cardTime">--:--</b></div>
   <div class="meta" id="cardMeta">—</div>
   <div class="desc" id="cardDesc">—</div>
 </div>
@@ -439,6 +442,79 @@ const CITIES = [
   { name:"维也纳",   lat:48.21, lon:16.37,  country:"奥地利",     tz:1,    desc:"音乐之都，金色大厅与哈布斯堡的辉煌。" },
   { name:"哥本哈根", lat:55.68, lon:12.57,  country:"丹麦",       tz:1,    desc:"小美人鱼与自行车之城，北欧幸福样本。" },
   { name:"阿姆斯特丹",lat:52.37, lon:4.90,   country:"荷兰",       tz:1,    desc:"运河环绕的自行车之都，郁金香与画家之乡。" },
+  { name:"底特律",   lat:42.33, lon:-83.05, country:"美国",       tz:-5,   desc:"汽车之城，美国工业时代的摇篮与摩城之音。" },
+  { name:"芝加哥",   lat:41.88, lon:-87.63, country:"美国",       tz:-6,   desc:"密歇根湖畔的风城，摩天大楼与爵士乐诞生地。" },
+  { name:"西雅图",   lat:47.61, lon:-122.33,country:"美国",       tz:-8,   desc:"太空针塔与咖啡文化，雨林环抱的科技名城。" },
+  { name:"迈阿密",   lat:25.76, lon:-80.19, country:"美国",       tz:-5,   desc:"阳光海滩与装饰艺术，通往拉美的度假门户。" },
+  { name:"休斯顿",   lat:29.76, lon:-95.37, country:"美国",       tz:-6,   desc:"航天之城，NASA 任务控制中心所在地。" },
+  { name:"拉斯维加斯",lat:36.17, lon:-115.14,country:"美国",       tz:-8,   desc:"沙漠中的不夜娱乐之都，霓虹与赌场之城。" },
+  { name:"旧金山",   lat:37.77, lon:-122.42,country:"美国",       tz:-8,   desc:"金门大桥与硅谷门户，多彩包容的海湾之城。" },
+  { name:"蒙特利尔", lat:45.50, lon:-73.57, country:"加拿大",     tz:-5,   desc:"北美的法语明珠，古城与艺术节交织。" },
+  { name:"墨西哥城", lat:19.43, lon:-99.13, country:"墨西哥",     tz:-6,   desc:"高原上的千年古都，阿兹特克与殖民文明叠印。" },
+  { name:"京都",     lat:35.01, lon:135.77, country:"日本",       tz:9,    desc:"千年古都，金阁寺与艺伎巷道的和风雅韵。" },
+  { name:"札幌",     lat:43.06, lon:141.35, country:"日本",       tz:9,    desc:"北海道雪国之都，冰雪节与拉面闻名。" },
+  { name:"马尼拉",   lat:14.60, lon:120.98, country:"菲律宾",     tz:8,    desc:"马尼拉湾畔的群岛首都，西班牙古城墙犹存。" },
+  { name:"香港",     lat:22.32, lon:114.17, country:"中国香港",   tz:8,    desc:"维港璀璨夜景，中西荟萃的东方之珠。" },
+  { name:"河内",     lat:21.03, lon:105.85, country:"越南",       tz:7,    desc:"红河畔的千年古都，法式街区与还剑湖。" },
+  { name:"胡志明市", lat:10.82, lon:106.63, country:"越南",       tz:7,    desc:"旧称西贡，湄公河三角洲的活力商都。" },
+  { name:"雅加达",   lat:-6.21, lon:106.85, country:"印度尼西亚", tz:7,    desc:"赤道上的千岛之国首都，热带巨型都会。" },
+  { name:"撒马尔罕", lat:39.65, lon:66.98,  country:"乌兹别克斯坦",tz:5,    desc:"丝绸之路明珠，蓝色穹顶的中亚古城。" },
+  { name:"伊斯兰堡", lat:33.68, lon:73.05,  country:"巴基斯坦",   tz:5,    desc:"喜马拉雅山麓的规划新都，费萨尔清真寺矗立。" },
+  { name:"加尔各答", lat:22.57, lon:88.36,  country:"印度",       tz:5.5,  desc:"孟加拉湾畔的文化之都，殖民建筑与诗歌之乡。" },
+  { name:"布达佩斯", lat:47.50, lon:19.04,  country:"匈牙利",     tz:1,    desc:"多瑙河明珠，链子桥与温泉浴场之城。" },
+  { name:"米兰",     lat:45.46, lon:9.19,   country:"意大利",     tz:1,    desc:"世界时尚之都，大教堂与斯卡拉歌剧院。" },
+  { name:"里斯本",   lat:38.72, lon:-9.14,  country:"葡萄牙",     tz:0,    desc:"七丘之城，电车与法朵歌声的大西洋门户。" },
+  { name:"拉各斯",   lat:6.52,  lon:3.38,   country:"尼日利亚",   tz:1,    desc:"西非最大都会，几内亚湾畔的经济脉搏。" },
+  { name:"达累斯萨拉姆",lat:-6.79,lon:39.21, country:"坦桑尼亚",   tz:3,    desc:"印度洋畔的港口大城，通往桑给巴尔的门户。" },
+  { name:"开普敦",   lat:-33.92,lon:18.42,  country:"南非",       tz:2,    desc:"桌山脚下的海角之城，两洋交汇的绝景。" },
+  { name:"利雅得",   lat:24.71, lon:46.68,  country:"沙特阿拉伯", tz:3,    desc:"阿拉伯半岛腹地的沙漠首都，现代与传统并存。" },
+  { name:"阿布扎比", lat:24.45, lon:54.38,  country:"阿联酋",     tz:4,    desc:"海湾之滨的阿联酋首都，谢赫扎耶德大清真寺。" },
+  { name:"多哈",     lat:25.29, lon:51.53,  country:"卡塔尔",     tz:3,    desc:"波斯湾畔的现代天际线，伊斯兰艺术博物馆。" },
+  { name:"麦加",     lat:21.39, lon:39.86,  country:"沙特阿拉伯", tz:3,    desc:"伊斯兰教圣城，克尔白与朝觐信众的中心。" },
+  { name:"特拉维夫", lat:32.08, lon:34.78,  country:"以色列",     tz:2,    desc:"地中海畔的白城，包豪斯建筑与不夜海滩。" },
+  { name:"清迈",     lat:18.79, lon:98.98,  country:"泰国",       tz:7,    desc:"泰北玫瑰古城，寺庙与山林环抱的慢生活。" },
+  { name:"槟城",     lat:5.41,  lon:100.33, country:"马来西亚",   tz:8,    desc:"乔治市的南洋古韵，街头美食与壁画之城。" },
+  { name:"斯德哥尔摩",lat:59.33, lon:18.07,  country:"瑞典",       tz:1,    desc:"跨越十四岛的北欧水城，诺贝尔奖颁授地。" },
+  { name:"堪培拉",   lat:-35.28,lon:149.13, country:"澳大利亚",   tz:10,   desc:"精心规划的澳洲首都，环湖而建的花园之城。" },
+  { name:"布里斯班", lat:-27.47,lon:153.03, country:"澳大利亚",   tz:10,   desc:"阳光之州首府，布里斯班河蜿蜒的宜居港市。" },
+  { name:"珀斯",     lat:-31.95,lon:115.86, country:"澳大利亚",   tz:8,    desc:"印度洋畔的孤独之城，天鹅河与灿烂阳光。" },
+  { name:"阿德莱德", lat:-34.93,lon:138.60, country:"澳大利亚",   tz:9.5,  desc:"教堂与葡萄酒之城，节庆氛围浓厚的南澳首府。" },
+];
+
+// NBA 30 支球队（主场球馆坐标） —— 由「NBA 球队」图层控制，默认关闭
+const NBA_TEAMS = [
+  // 东部联盟（state = 所属州/省/特区）
+  { name:"波士顿凯尔特人",   state:"马萨诸塞州",   city:"波士顿",        arena:"TD 花园球馆",        lat:42.366, lon:-71.062 },
+  { name:"布鲁克林篮网",     state:"纽约州",       city:"纽约",          arena:"巴克莱中心",          lat:40.750, lon:-73.993, group:"NYC" },   // 与尼克斯同处纽约：共用一个标记，标签每 3 秒轮换
+  { name:"纽约尼克斯",       state:"纽约州",       city:"纽约",          arena:"麦迪逊广场花园",      lat:40.750, lon:-73.993, group:"NYC" },
+  { name:"费城76人",         state:"宾夕法尼亚州", city:"费城",          arena:"富国银行中心",        lat:39.901, lon:-75.172 },
+  { name:"多伦多猛龙",       state:"安大略省",     city:"多伦多",        arena:"丰业银行球馆",        lat:43.643, lon:-79.379 },
+  { name:"芝加哥公牛",       state:"伊利诺伊州",   city:"芝加哥",        arena:"联合中心",            lat:41.881, lon:-87.674 },
+  { name:"克利夫兰骑士",     state:"俄亥俄州",     city:"克利夫兰",      arena:"火箭抵押贷款球馆",    lat:41.497, lon:-81.688 },
+  { name:"底特律活塞",       state:"密歇根州",     city:"底特律",        arena:"小凯撒球馆",          lat:42.341, lon:-83.055 },
+  { name:"印第安纳步行者",   state:"印第安纳州",   city:"印第安纳波利斯", arena:"盖恩布里奇球馆",      lat:39.764, lon:-86.155 },
+  { name:"密尔沃基雄鹿",     state:"威斯康星州",   city:"密尔沃基",      arena:"Fiserv 论坛球馆",     lat:43.045, lon:-87.917 },
+  { name:"亚特兰大老鹰",     state:"佐治亚州",     city:"亚特兰大",      arena:"道富银行球馆",        lat:33.757, lon:-84.396 },
+  { name:"夏洛特黄蜂",       state:"北卡罗来纳州", city:"夏洛特",        arena:"光谱中心",            lat:35.225, lon:-80.839 },
+  { name:"迈阿密热火",       state:"佛罗里达州",   city:"迈阿密",        arena:"Kaseya 中心",         lat:25.781, lon:-80.187 },
+  { name:"奥兰多魔术",       state:"佛罗里达州",   city:"奥兰多",        arena:"起亚中心",            lat:28.539, lon:-81.384 },
+  { name:"华盛顿奇才",       state:"哥伦比亚特区", city:"华盛顿",        arena:"第一资本球馆",        lat:38.898, lon:-77.021 },
+  // 西部联盟
+  { name:"丹佛掘金",         state:"科罗拉多州",   city:"丹佛",          arena:"Ball 球馆",           lat:39.749, lon:-105.008 },
+  { name:"明尼苏达森林狼",   state:"明尼苏达州",   city:"明尼阿波利斯",  arena:"标靶中心",            lat:44.979, lon:-93.276 },
+  { name:"俄克拉荷马城雷霆", state:"俄克拉荷马州", city:"俄克拉荷马城",  arena:"Paycom 中心",         lat:35.463, lon:-97.515 },
+  { name:"波特兰开拓者",     state:"俄勒冈州",     city:"波特兰",        arena:"Moda 中心",           lat:45.532, lon:-122.667 },
+  { name:"犹他爵士",         state:"犹他州",       city:"盐湖城",        arena:"达美中心",            lat:40.768, lon:-111.901 },
+  { name:"金州勇士",         state:"加利福尼亚州", city:"旧金山",        arena:"大通中心",            lat:37.768, lon:-122.388 },
+  { name:"洛杉矶快船",       state:"加利福尼亚州", city:"洛杉矶",        arena:"Intuit 穹顶球馆",     lat:34.043, lon:-118.267, group:"LA" },   // 与湖人同处洛杉矶：共用一个标记，标签每 3 秒轮换
+  { name:"洛杉矶湖人",       state:"加利福尼亚州", city:"洛杉矶",        arena:"Crypto.com 球馆",     lat:34.043, lon:-118.267, group:"LA" },
+  { name:"菲尼克斯太阳",     state:"亚利桑那州",   city:"菲尼克斯",      arena:"Footprint 中心",      lat:33.446, lon:-112.071 },
+  { name:"萨克拉门托国王",   state:"加利福尼亚州", city:"萨克拉门托",    arena:"Golden 1 中心",       lat:38.580, lon:-121.500 },
+  { name:"达拉斯独行侠",     state:"得克萨斯州",   city:"达拉斯",        arena:"美国航空中心",        lat:32.790, lon:-96.810 },
+  { name:"休斯顿火箭",       state:"得克萨斯州",   city:"休斯顿",        arena:"丰田中心",            lat:29.751, lon:-95.362 },
+  { name:"孟菲斯灰熊",       state:"田纳西州",     city:"孟菲斯",        arena:"联邦快递球馆",        lat:35.138, lon:-90.051 },
+  { name:"新奥尔良鹈鹕",     state:"路易斯安那州", city:"新奥尔良",      arena:"冰沙王中心",          lat:29.949, lon:-90.082 },
+  { name:"圣安东尼奥马刺",   state:"得克萨斯州",   city:"圣安东尼奥",    arena:"Frost 银行球馆",      lat:29.427, lon:-98.437 },
 ];
 
 // 经纬度 → 球面三维坐标（匹配等距圆柱投影地图贴图）
@@ -454,48 +530,141 @@ function latLonToVec3(lat, lon, r){
 
 const markersGroup = new THREE.Group();
 earth.add(markersGroup);   // 作为地球子对象，随地球自转/倾斜
-const cityMarkers = [];
+const markers = [];   // 城市 + NBA 球队标记（type 区分）
 
-CITIES.forEach(c => {
-  const pos = latLonToVec3(c.lat, c.lon, 1.0);
-  const outward = pos.clone().normalize();
+// —— 经典红色水滴定位标：几何/材质全城市共享 ——
+const UP = new THREE.Vector3(0, 1, 0);
+const PIN_BASE = 1.004;                       // 针尖贴地半径
+const PIN_RB = 0.020, PIN_CY = 0.048;         // 气泡半径 / 气泡中心距针尖
+const PIN_TOP = PIN_CY + PIN_RB;              // 定位标总高
+// 水滴轮廓：针尖(0,0) → 沿切线上行 → 气泡圆弧收顶，绕 Y 轴旋成三维水滴
+const pinGeo = (() => {
+  const pts = [ new THREE.Vector2(0, 0) ];
+  const start = Math.acos(PIN_RB / PIN_CY);   // 切点角(与竖直方向夹角)，保证锥面与气泡平滑相切
+  const SEG = 22;
+  for (let i = 0; i <= SEG; i++){
+    const phi = start + (Math.PI - start) * (i / SEG);
+    pts.push(new THREE.Vector2(PIN_RB * Math.sin(phi), PIN_CY - PIN_RB * Math.cos(phi)));
+  }
+  return new THREE.LatheGeometry(pts, 40);
+})();
+// 针体垂直渐变：顶部气泡明亮、针尖渐深 → 无需依赖场景光即有立体感，昼夜面都鲜亮
+const pinBodyTex = (() => {
+  const cv = document.createElement("canvas"); cv.width = 16; cv.height = 128;
+  const x = cv.getContext("2d");
+  const g = x.createLinearGradient(0, 0, 0, 128);   // 顶=气泡(v=1)，底=针尖(v=0)
+  g.addColorStop(0.00, "#ff8a72");
+  g.addColorStop(0.32, "#f4503b");
+  g.addColorStop(0.68, "#dc3325");
+  g.addColorStop(1.00, "#9e1a11");
+  x.fillStyle = g; x.fillRect(0, 0, 16, 128);
+  const t = new THREE.CanvasTexture(cv); return t;
+})();
+const pinMat = new THREE.MeshStandardMaterial({
+  map: pinBodyTex,
+  emissive: 0xffffff, emissiveMap: pinBodyTex, emissiveIntensity: 0.42,  // 自发光沿用渐变→夜面保形保色
+  roughness: 0.3, metalness: 0.0, side: THREE.DoubleSide
+});
+// NBA 定位标：同款水滴，换成好看的紫罗兰渐变以区别于城市红标
+const pinBodyTexNBA = (() => {
+  const cv = document.createElement("canvas"); cv.width = 16; cv.height = 128;
+  const x = cv.getContext("2d");
+  const g = x.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0.00, "#d9b8ff");
+  g.addColorStop(0.32, "#a06bf5");
+  g.addColorStop(0.68, "#7c3aed");
+  g.addColorStop(1.00, "#4c1d95");
+  x.fillStyle = g; x.fillRect(0, 0, 16, 128);
+  return new THREE.CanvasTexture(cv);
+})();
+const pinMatNBA = new THREE.MeshStandardMaterial({
+  map: pinBodyTexNBA,
+  emissive: 0xffffff, emissiveMap: pinBodyTexNBA, emissiveIntensity: 0.42,
+  roughness: 0.3, metalness: 0.0, side: THREE.DoubleSide
+});
+// 气泡中心白色圆孔（Sprite 始终朝向相机）：带内阴影→凹陷质感
+const holeTex = (() => {
+  const S = 128, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const x = cv.getContext("2d"), c = S / 2;
+  x.beginPath(); x.arc(c, c, 46, 0, Math.PI * 2); x.fillStyle = "#fff"; x.fill();
+  const ish = x.createRadialGradient(c, c - 12, 4, c, c, 48);   // 上浅下深→凹孔
+  ish.addColorStop(0, "rgba(110,18,10,0)");
+  ish.addColorStop(1, "rgba(110,18,10,.4)");
+  x.fillStyle = ish; x.beginPath(); x.arc(c, c, 46, 0, Math.PI * 2); x.fill();
+  const t = new THREE.CanvasTexture(cv); t.anisotropy = 4; return t;
+})();
+// 气泡高光：柔和白色圆点(叠加混合)→ 玻璃/糖果光泽
+const glossTex = (() => {
+  const S = 64, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const x = cv.getContext("2d"), c = S / 2;
+  const g = x.createRadialGradient(c, c, 0, c, c, c);
+  g.addColorStop(0, "rgba(255,255,255,.9)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = g; x.fillRect(0, 0, S, S);
+  const t = new THREE.CanvasTexture(cv); return t;
+})();
+// depthTest:false → 小孔/高光始终画在气泡之上（定位标已在背面隐藏，不会穿透地球）
+const holeMat  = new THREE.SpriteMaterial({ map: holeTex,  transparent: true, depthTest: false, depthWrite: false });
+const glossMat = new THREE.SpriteMaterial({ map: glossTex, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending });
 
-  // 发光圆点
-  const dot = new THREE.Mesh(
-    new THREE.SphereGeometry(0.012, 16, 16),
-    new THREE.MeshBasicMaterial({ color:0xffd48a })
-  );
-  dot.position.copy(outward.clone().multiplyScalar(1.004));
-  markersGroup.add(dot);
+// 通用标记工厂：城市与 NBA 球队复用同一水滴造型，仅材质/环色/标签样式不同
+// data 可含 variants[]（同城多队共用一个标记，标签轮换）；否则视为单一目标
+function addMarker(data, i, opts){
+  const variants = data.variants || [data];
+  const info0 = variants[0];
+  const outward = latLonToVec3(data.lat, data.lon, 1.0).normalize();
 
-  // 脉冲光环（贴在球面，法线朝外）
+  // 水滴定位标（针尖朝地心、气泡朝外）
+  const pin = new THREE.Mesh(pinGeo, opts.pinMat);
+  pin.quaternion.setFromUnitVectors(UP, outward);
+  pin.position.copy(outward).multiplyScalar(PIN_BASE);
+  markersGroup.add(pin);
+
+  // 气泡白孔（作为 pin 子对象，随其悬浮/隐藏）
+  const hole = new THREE.Sprite(holeMat);
+  hole.scale.setScalar(0.015);
+  hole.position.set(0, PIN_CY, 0);
+  pin.add(hole);
+
+  // 气泡高光点（偏上，营造光泽）
+  const gloss = new THREE.Sprite(glossMat);
+  gloss.scale.setScalar(0.02);
+  gloss.position.set(-PIN_RB * 0.35, PIN_CY + PIN_RB * 0.5, PIN_RB * 0.4);
+  pin.add(gloss);
+
+  // 落点脉冲光环（贴球面，柔和细环，与定位标呼应）
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.018, 0.026, 32),
-    new THREE.MeshBasicMaterial({ color:0xe8853a, transparent:true, opacity:0.9, side:THREE.DoubleSide, depthWrite:false })
+    new THREE.RingGeometry(0.013, 0.019, 40),
+    new THREE.MeshBasicMaterial({ color:opts.ringColor, transparent:true, opacity:0.5, side:THREE.DoubleSide, depthWrite:false })
   );
-  ring.position.copy(outward.clone().multiplyScalar(1.004));
+  ring.position.copy(outward).multiplyScalar(PIN_BASE);
   ring.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), outward);
   markersGroup.add(ring);
 
-  // 引脚小立柱
-  const stem = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.0015, 0.0015, 0.05, 6),
-    new THREE.MeshBasicMaterial({ color:0xffd48a })
-  );
-  stem.position.copy(outward.clone().multiplyScalar(1.025));
-  stem.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), outward);
-  markersGroup.add(stem);
-
-  // HTML 城市名标签
+  // HTML 名称标签（浮于气泡上方）
   const el = document.createElement("div");
-  el.className = "city-label";
-  el.textContent = c.name;
+  el.className = opts.labelClass;
+  el.textContent = info0.name;
   const label = new THREE.CSS2DObject(el);
-  label.position.copy(outward.clone().multiplyScalar(1.06));
+  label.position.copy(outward.clone().multiplyScalar(PIN_BASE + PIN_TOP + 0.03));
   markersGroup.add(label);
 
-  cityMarkers.push({ dot, ring, stem, el, outward, city: c });
+  markers.push({ pin, hole, gloss, ring, el, outward, data: info0, variants, vi: 0,
+    type: opts.type, ringColor: opts.ringColor, phase: i * 0.7 });
+}
+CITIES.forEach((c, i) => addMarker(c, i, { pinMat, ringColor:0xff6a58, labelClass:"city-label", type:"city" }));
+
+// NBA：带 group 的同城球队（纽约尼克斯/布鲁克林篮网、洛杉矶湖人/洛杉矶快船）合并为一个标记，标签每 3 秒轮换
+const nbaSpecs = [], nbaGroups = {};
+NBA_TEAMS.forEach((t) => {
+  if (t.group){
+    if (!nbaGroups[t.group]){ nbaGroups[t.group] = { lat:t.lat, lon:t.lon, variants:[] }; nbaSpecs.push(nbaGroups[t.group]); }
+    nbaGroups[t.group].variants.push(t);
+  } else {
+    nbaSpecs.push(t);
+  }
 });
+nbaSpecs.forEach((s, i) => addMarker(s, i, { pinMat:pinMatNBA, ringColor:0x8b5cf6, labelClass:"nba-label", type:"nba" }));
 
 // 地球略微倾斜 23.5°
 earth.rotation.z = clouds.rotation.z = THREE.MathUtils.degToRad(23.5);
@@ -511,33 +680,90 @@ addEventListener("resize", () => {
   labelRenderer.setSize(innerWidth, innerHeight);
 });
 
-// 城市标注：脉冲动画 + 背面自动隐藏 + 缩小时隐藏名称
+// 城市标注：脉冲动画 + 背面自动隐藏 + 缩小时隐藏名称 + 屏幕空间去重叠
 // 相机距离 > 该值时视为“看到完整地球”，此时隐藏所有城市名（放大靠近后才显示）
 const LABEL_SHOW_DIST = 2.5;
-const _wp = new THREE.Vector3(), _toCam = new THREE.Vector3();
+const _wp = new THREE.Vector3(), _toCam = new THREE.Vector3(), _proj = new THREE.Vector3();
+let hoverMarker = null;                          // 鼠标悬停的标记（强制显示其名称）
+const _placed = [];                              // 本帧已占位的标签矩形（去重叠用）
+// 两个屏幕矩形（中心+半宽半高）是否相交（含 pad 间距）
+function labelsOverlap(a, b, pad){
+  return Math.abs(a.x - b.x) * 2 < a.w + b.w + pad * 2 &&
+         Math.abs(a.y - b.y) * 2 < a.h + b.h + pad * 2;
+}
 function updateCityMarkers(){
   const pulse = 1 + 0.35 * Math.sin(elapsed * 3);
-  const on = layers.labels;                       // 图层总开关
-  const showLabels = on && camera.position.distanceTo(controls.target) < LABEL_SHOW_DIST;  // 已放大才显示名称
-  for (const m of cityMarkers){
-    const sel = m === selectedMarker;
-    m.ring.scale.setScalar(sel ? pulse * 1.6 : pulse);
-    m.ring.material.opacity = (sel ? 1.0 : 0.9) - 0.5 * (pulse - 0.65);
-    m.ring.material.color.setHex(sel ? 0x4a9eff : 0xe8853a);
+  const zoomedIn = camera.position.distanceTo(controls.target) < LABEL_SHOW_DIST;  // 已放大才显示名称
+  const W = innerWidth, H = innerHeight;
+  const cand = [];                               // 本帧参与标签竞争的候选
 
-    m.dot.getWorldPosition(_wp);                 // 世界坐标（地球在原点）
+  for (const m of markers){
+    // 同城多队共用一个标记：每 3 秒轮换显示的球队（选中查看信息卡时冻结在当前队）
+    if (m.variants.length > 1 && m !== selectedMarker){
+      const vi = Math.floor(elapsed / 3) % m.variants.length;
+      if (vi !== m.vi){ m.vi = vi; m.data = m.variants[vi]; m.el.textContent = m.data.name; m.w = 0; }
+    }
+
+    const on = (m.type === "nba") ? layers.nba : layers.labels;   // 各自图层开关
+    const sel = m === selectedMarker;
+    const hov = m === hoverMarker;
+
+    // 定位标悬浮动效（各标记相位错开，选中/悬停时抬得更高）
+    const lift = 0.010 * (0.5 + 0.5 * Math.sin(elapsed * 2.2 + m.phase)) + (sel ? 0.012 : hov ? 0.006 : 0);
+    m.pin.position.copy(m.outward).multiplyScalar(PIN_BASE + lift);
+    m.pin.scale.setScalar(sel ? 1.4 : hov ? 1.18 : 1.0);
+
+    // 落点光环脉冲（未选中用各自基色，选中统一变蓝高亮）
+    m.ring.scale.setScalar(sel ? pulse * 1.6 : pulse);
+    m.ring.material.opacity = (sel ? 0.95 : 0.5) - 0.32 * (pulse - 0.65);
+    m.ring.material.color.setHex(sel ? 0x4a9eff : m.ringColor);
+
+    m.pin.getWorldPosition(_wp);                 // 世界坐标（地球在原点）
     const normal = _wp.clone().normalize();      // 该点朝外法线
     _toCam.copy(camera.position).sub(_wp);        // 指向相机
     const facing = normal.dot(_toCam.normalize()); // >0 为正面
-    const vis = on && facing > 0.12 && (showLabels || sel);  // 已放大在正面(或被选中)才显示名称
-    m.el.style.opacity = vis ? 1 : 0;
-    m.dot.visible = m.ring.visible = m.stem.visible = on && facing > -0.1;
+    m.pin.visible = m.ring.visible = on && facing > -0.05;  // hole 为 pin 子对象随之隐藏
+    m._facing = facing;
+
+    // 投影到屏幕像素（标签锚点在定位标上方约 22px）
+    _proj.copy(_wp).project(camera);
+    m._sx = (_proj.x * 0.5 + 0.5) * W;
+    m._sy = (-_proj.y * 0.5 + 0.5) * H;
+
+    // 名称候选：图层开、在正面、已放大（或被选中/悬停时始终参与）
+    const eligible = on && facing > 0.12 && (zoomedIn || sel || hov);
+    m._show = false;
+    if (eligible){
+      if (m.w === undefined || m.w === 0) m.w = m.el.offsetWidth || (m.el.textContent.length * 13 + 16);
+      cand.push(m);
+    } else {
+      m.el.style.opacity = 0;                    // 不参与竞争的直接隐藏
+    }
+  }
+
+  // 优先级：选中/悬停最高，其余按正对程度（越居中越优先）——高优先者先占位，冲突者让位
+  cand.sort((a, b) => {
+    const ap = (a === selectedMarker || a === hoverMarker) ? 1 : 0;
+    const bp = (b === selectedMarker || b === hoverMarker) ? 1 : 0;
+    if (ap !== bp) return bp - ap;
+    return b._facing - a._facing;
+  });
+  _placed.length = 0;
+  for (const m of cand){
+    const forced = (m === selectedMarker || m === hoverMarker);
+    const rect = { x: m._sx, y: m._sy - 22, w: m.w, h: 20 };
+    let ok = true;
+    if (!forced){
+      for (const p of _placed){ if (labelsOverlap(rect, p, 5)){ ok = false; break; } }
+    }
+    if (ok){ m._show = true; _placed.push(rect); }
+    m.el.style.opacity = m._show ? 1 : 0;
   }
 }
 
 // ================= 运行状态 =================
-const layers = { labels: true };          // 城市标注总开关（updateCityMarkers 读取）
-let selectedMarker = null;                 // 当前选中的城市标记
+const layers = { labels: true, nba: false };  // 城市标注 / NBA 图层开关（updateCityMarkers 读取）
+let selectedMarker = null;                 // 当前选中的标记（城市或球队）
 let mode = "realtime";                     // "realtime" 真实昼夜 | "demo" 演示自转
 let paused = false;
 let spinMul = 1.0;                         // 演示自转速度倍率
@@ -602,20 +828,32 @@ function cityLocalTime(tz){
   const d = new Date(utcMs + tz * 3600000);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+const cardLt = document.getElementById("cardLt");
 function refreshCardTime(){
-  if (selectedMarker) cardTime.textContent = cityLocalTime(selectedMarker.city.tz);
+  if (selectedMarker && selectedMarker.type === "city") cardTime.textContent = cityLocalTime(selectedMarker.data.tz);
 }
 function openCard(m){
   selectedMarker = m;
-  const c = m.city;
-  cardName.textContent = c.name;
-  cardCountry.textContent = c.country;
-  cardTime.textContent = cityLocalTime(c.tz);
-  const tzs = (c.tz >= 0 ? "+" : "") + c.tz;
-  const latS = Math.abs(c.lat).toFixed(2) + "°" + (c.lat >= 0 ? "N" : "S");
-  const lonS = Math.abs(c.lon).toFixed(2) + "°" + (c.lon >= 0 ? "E" : "W");
-  cardMeta.textContent = `${latS}, ${lonS}　·　时区 UTC${tzs}`;
-  cardDesc.textContent = c.desc;
+  const d = m.data;
+  cardName.textContent = d.name;
+  if (m.type === "nba"){
+    // NBA 球队卡：只展示球队介绍句（无当地时间/坐标）
+    cardCountry.textContent = "NBA 球队";
+    cardLt.style.display = "none";
+    cardMeta.style.display = "none";
+    const cityM = d.city.endsWith("城") ? d.city : d.city + "市";   // 已以“城”结尾则不再叠“市”
+    cardDesc.textContent = `${d.name}球队所在位置是${d.state}${cityM}。`;
+  } else {
+    cardCountry.textContent = d.country;
+    cardLt.style.display = "";
+    cardMeta.style.display = "";
+    cardTime.textContent = cityLocalTime(d.tz);
+    const tzs = (d.tz >= 0 ? "+" : "") + d.tz;
+    const latS = Math.abs(d.lat).toFixed(2) + "°" + (d.lat >= 0 ? "N" : "S");
+    const lonS = Math.abs(d.lon).toFixed(2) + "°" + (d.lon >= 0 ? "E" : "W");
+    cardMeta.textContent = `${latS}, ${lonS}　·　时区 UTC${tzs}`;
+    cardDesc.textContent = d.desc;
+  }
   card.classList.add("show");
 }
 function closeCard(){ selectedMarker = null; card.classList.remove("show"); }
@@ -629,6 +867,18 @@ let downX = 0, downY = 0, downT = 0;
 renderer.domElement.addEventListener("pointerdown", (e) => {
   downX = e.clientX; downY = e.clientY; downT = performance.now();
 });
+// 悬停某定位标 → 强制显示其名称（即便被去重叠隐藏），并给出手型光标
+renderer.domElement.addEventListener("pointermove", (e) => {
+  let best = null, bestD = 24 * 24;              // 命中半径 ~24px
+  for (const m of markers){
+    if (!m.pin.visible) continue;                // 只在可见定位标上悬停
+    const dx = e.clientX - m._sx, dy = e.clientY - m._sy;
+    const d = dx * dx + dy * dy;
+    if (d < bestD){ bestD = d; best = m; }
+  }
+  hoverMarker = best;
+  renderer.domElement.style.cursor = best ? "pointer" : "";
+});
 renderer.domElement.addEventListener("pointerup", (e) => {
   const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
   if (moved > 6 || performance.now() - downT > 500) return;       // 视为拖拽/长按
@@ -639,7 +889,8 @@ renderer.domElement.addEventListener("pointerup", (e) => {
   if (!hit){ closeCard(); return; }
   earth.worldToLocal(_localHit.copy(hit.point)).normalize();       // 命中点 → 地球本地朝外法线
   let best = null, bestDot = Math.cos(deg(7));                      // 阈值 ~7°
-  for (const m of cityMarkers){
+  for (const m of markers){
+    if (!(m.type === "nba" ? layers.nba : layers.labels)) continue; // 只拾取当前显示的图层
     const d = _localHit.dot(m.outward);
     if (d > bestDot){ bestDot = d; best = m; }
   }
@@ -673,7 +924,14 @@ $("lyOrbits").addEventListener("change", (e) => {
 $("lyMoon").addEventListener("change", (e) => {
   for (const ob of orbits) if (ob.isMoon) ob.group.visible = e.target.checked;
 });
-$("lyLabels").addEventListener("change", (e) => { layers.labels = e.target.checked; });
+$("lyLabels").addEventListener("change", (e) => {
+  layers.labels = e.target.checked;
+  if (!e.target.checked && selectedMarker && selectedMarker.type === "city") closeCard();
+});
+$("lyNBA").addEventListener("change", (e) => {
+  layers.nba = e.target.checked;
+  if (!e.target.checked && selectedMarker && selectedMarker.type === "nba") closeCard();
+});
 
 const btnPause = $("btnPause");
 btnPause.addEventListener("click", () => {
